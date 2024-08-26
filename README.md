@@ -29,12 +29,16 @@ execução do programa (vide Opção 4)) realize a remoção do respectivo regis
 diretamente no arquivo de dados. Para reaproveitar o espaço removido vocês terão que acrescentar no arquivo
 uma lista ligada entre os espaços disponíveis. Assim, vocês terão que acrescentar as seguintes informações no
 arquivo:
+
 (1) criem um registro cabeçalho e nele um campo que indica o offset para o primeiro elemento da lista.
+
 (2) ao remover um registro, substitua-o no arquivo por: tamanho em bytes do registro
 removido*offset para o próximo elemento da lista, onde * é um marcador indicando que este
 espaço está disponível.
+
 (3) um novo espaço disponível deve ser acrescentado sempre no início da lista. Logo, vocês devem
 atualizar o offset do cabeçalho e guardar o seu antigo offset no novo elemento da lista.
+
 (4) o final da lista é indicado por -1 no campo offset para o próximo elemento.
 ### Compactação
 A estratégia de remoção vai criar fragmentos (internos e externos). Reconstruam o arquivo, quando solicitado
