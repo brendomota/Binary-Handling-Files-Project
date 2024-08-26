@@ -7,7 +7,7 @@ int pegar_tamanho_reg(FILE *fd, char *registro)
 {
     char byte;
 
-    if (!fread(&byte, sizeof(char), 1, fd))
+    if (!fread(&byte, sizeof(int), 1, fd))
     {
         return 0;
     }
@@ -32,6 +32,12 @@ int main()
         float freq;
     } hist;
 
+    struct remover
+    {
+        char id_aluno[4];
+        char sigla_disc[4];
+    } remove;
+
     char registro[120];
     int tam_reg;
     int cabecalho;
@@ -44,6 +50,13 @@ int main()
     if (!(in = fopen("insere.bin", "r+b")))
     {
         printf("\nNao foi possivel abrir o arquivo de insersao");
+        return 0;
+    }
+
+    FILE *re;
+    if (!(re = fopen("remove.bin", "r+b")))
+    {
+        printf("\nNao foi possivel  abrir o arquivo remove.bin");
         return 0;
     }
 
@@ -89,12 +102,46 @@ int main()
 
         if (tam_in_aux == 0)
         {
-            printf("\nPrimeira insercao no arquivo in_aux.bin");
             byte_in_aux = 0;
             fwrite(&byte_in_aux, sizeof(int), 1, in_aux);
         }
     }
     rewind(in_aux);
+
+    /*----------CRIAÇÃO DO ARQUIVO QUE ARMAZENA O BYTE A SER LIDO NO ARQUIVO REMOVE.BIN----------*/
+    FILE *re_aux;
+    int byte_re_aux;
+
+    re_aux = fopen("re_aux.bin", "r+b");
+
+    // Se o arquivo não existir, cria-o com "w+b"
+    if (re_aux == NULL)
+    {
+        // Arquivo ainda não existe, tem que ser criado com w+b
+        re_aux = fopen("re_aux.bin", "w+b");
+        if (re_aux == NULL)
+        {
+            printf("\nNao foi possivel criar o arquivo auxiliar de remocao");
+            return 0;
+        }
+        // Como o arquivo é novo, consideramos que é a primeira inserção
+        byte_re_aux = 0;
+        fwrite(&byte_re_aux, sizeof(int), 1, re_aux);
+    }
+    else
+    {
+        // Verifica se o arquivo está vazio
+        fseek(re_aux, 0, SEEK_END);
+        long tam_re_aux = ftell(re_aux);
+
+        if (tam_re_aux == 0)
+        {
+            printf("\nPrimeira remocao no arquivo re_aux.bin");
+            byte_re_aux = 0;
+            fwrite(&byte_re_aux, sizeof(int), 1, re_aux);
+        }
+    }
+    rewind(re_aux);
 
     /*-----------CRIAÇÃO DE UM ARQUIVO QUE GUARDA O ÚLTIMO BYTE DE OUT.BIN------------*/
     FILE *out_aux;
@@ -151,7 +198,6 @@ int main()
         {
             // Obtem o byte a ser lido no arquivo insere.bin
             fread(&byte_in_aux, sizeof(int), 1, in_aux);
-            printf("\nByte que sera lido no arquivo insere.bin: %d", byte_in_aux);
 
             // Faz a leitura do arquivo insere.bin e formata o conteúdo para o arquivo out.bin
             fseek(in, byte_in_aux, 0);
@@ -165,14 +211,16 @@ int main()
 
             rewind(out);
             fread(&cabecalho, sizeof(int), 1, out);
-            //Verifica se o cabeçalho é igual a menos 1
+            // Verifica se o cabeçalho é igual a -1, para adicionar no último byte do arquivo out.bin
             if (cabecalho == -1)
             {
                 fread(&byte_out_aux, sizeof(int), 1, out_aux);
                 fseek(out, byte_out_aux, 0);
-                printf("\nByte que vai inserir no out.bin : %d", byte_out_aux);
                 fwrite(&tam_reg, sizeof(int), 1, out);
                 fwrite(registro, sizeof(char), tam_reg, out);
+            }
+            else
+            {
             }
 
             // Atualiza o arquivo in_aux
@@ -181,15 +229,77 @@ int main()
             fwrite(&byte_in_aux, sizeof(int), 1, in_aux);
             rewind(in_aux);
 
-            //Atualiza o out_aux
+            // Atualiza o out_aux
             rewind(out_aux);
             fseek(out, 0, 2);
             long tam_out = ftell(out);
             rewind(out_aux);
             fwrite(&tam_out, sizeof(int), 1, out_aux);
-            printf("\nByte que vai inserir no out.bin : %d", tam_out);
             rewind(out);
             rewind(out_aux);
+        }
+        if (opcao == 2)
+        {
+            rewind(out);
+            fread(&cabecalho, sizeof(int), 1, out);
+
+            char pegar_chave[20];
+            fread(&byte_re_aux, sizeof(int), 1, re_aux);
+            fseek(re, byte_re_aux, 0);
+            fread(&remove, sizeof(remove), 1, re);
+
+            sprintf(pegar_chave, "%s%s", remove.id_aluno, remove.sigla_disc);
+
+            tam_reg = pegar_tamanho_reg(out, registro);
+            char *ptrchar;
+            int offset_byte = ftell(out);
+
+            while (tam_reg > 0)
+            {
+                char reg_aux[120];
+                char registro_copy[120];         // Cria uma cópia para o strtok
+                strcpy(registro_copy, registro); // Copia o conteúdo de registro
+
+                reg_aux[0] = '\0';
+                ptrchar = strtok(registro_copy, "#");
+
+                while (ptrchar != NULL)
+                {
+                    strcat(reg_aux, ptrchar);
+                    ptrchar = strtok(NULL, "#");
+                }
+
+                if (strstr(reg_aux, pegar_chave) != NULL)
+                {
+                    printf("\nRegistro que sera removido: %s", reg_aux);
+                    int tamanho_bytes_registro = tam_reg;
+                    char *estrela = "*";
+                    int offset_proximo_registro = cabecalho;
+
+                    fseek(out, offset_byte, 0);
+                    cabecalho = offset_byte;
+
+                    fwrite(&tamanho_bytes_registro, sizeof(int), 1, out);
+                    fwrite(estrela, sizeof(char), 1, out);
+                    fwrite(&offset_proximo_registro, sizeof(int), 1, out);
+
+                    // Volta para o início para escrever o cabeçalho
+                    fseek(out, 0, SEEK_SET);
+                    fwrite(&offset_byte, sizeof(int), 1, out);
+                    break;
+                }
+
+                // Avança para o próximo registro
+                
+                tam_reg = pegar_tamanho_reg(out, registro);
+                offset_byte = ftell(out) - tam_reg - sizeof(int);
+            }
+
+            // Atualiza o arquivo re_aux
+            rewind(re_aux);
+            byte_re_aux += 8;
+            fwrite(&byte_re_aux, sizeof(int), 1, re_aux);
+            rewind(re_aux);
         }
         if (opcao == 4)
         {
