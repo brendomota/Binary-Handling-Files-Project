@@ -165,6 +165,7 @@ int main()
 
             rewind(out);
             fread(&cabecalho, sizeof(int), 1, out);
+            //Verifica se o cabeçalho é igual a menos 1
             if (cabecalho == -1)
             {
                 fread(&byte_out_aux, sizeof(int), 1, out_aux);
