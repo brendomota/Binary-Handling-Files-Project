@@ -313,7 +313,7 @@ int main()
 
             if (chave_encontrada == 0)
             {
-                printf("\nA chave nao foi encontrada e a proxima remocao acontecera com a chave seguinte a esta.");
+                printf("\nA chave nao foi encontrada e a proxima remocao acontecera com a chave seguinte a esta no arquivo remove.bin.");
             }
 
             // Atualiza o arquivo re_aux
