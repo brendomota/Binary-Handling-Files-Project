@@ -212,6 +212,8 @@ int main()
             char *ptrchar;
             int offset_byte = ftell(out);
 
+            int chave_encontrada = 0; //Flag para ver se a chave foi encontrada ou não
+
             while (tam_reg > 0)
             {
                 char reg_aux[120];
@@ -244,6 +246,7 @@ int main()
                     // Volta para o início para escrever o cabeçalho
                     fseek(out, 0, SEEK_SET);
                     fwrite(&offset_byte, sizeof(int), 1, out);
+                    chave_encontrada = 1;
                     break;
                 }
 
@@ -251,6 +254,11 @@ int main()
                 
                 tam_reg = pegar_tamanho_reg(out, registro);
                 offset_byte = ftell(out) - tam_reg - sizeof(int);
+            }
+
+            if(chave_encontrada == 0)
+            {
+                printf("\nA chave nao foi encontrada e a proxima remocao acontecera com a chave seguinte a esta.");
             }
 
             // Atualiza o arquivo re_aux
