@@ -143,38 +143,6 @@ int main()
     }
     rewind(re_aux);
 
-    /*-----------CRIAÇÃO DE UM ARQUIVO QUE GUARDA O ÚLTIMO BYTE DE OUT.BIN------------*/
-    FILE *out_aux;
-    int byte_out_aux;
-
-    out_aux = fopen("out_aux.bin", "r+b");
-
-    // Se o arquivo não existir, cria-o com "w+b"
-    if (out_aux == NULL)
-    {
-        // Arquivo ainda não existe, tem que ser criado com w+b
-        out_aux = fopen("out_aux.bin", "w+b");
-        if (out_aux == NULL)
-        {
-            printf("\nNao foi possivel criar o arquivo auxiliar de insersao");
-            return 0;
-        }
-        // Como o arquivo é novo, consideramos que é a primeira inserção
-        byte_out_aux = 4; // Precisa pular os bytes destinados ao cabeçalho
-        fwrite(&byte_out_aux, sizeof(int), 1, out_aux);
-    }
-    else
-    {
-        // Verifica se o arquivo está vazio
-        fseek(out, 0, 2);
-        long tam_out = ftell(out);
-
-        rewind(out_aux);
-        fwrite(&tam_out, sizeof(int), 1, out_aux);
-    }
-    rewind(out_aux);
-    rewind(out);
-
     /*----------MENU PARA INTERAÇÃO COM O PROGRAMA----------*/
     printf("\n----------MENU----------");
     printf("\n1. Inserir");
@@ -214,8 +182,7 @@ int main()
             // Verifica se o cabeçalho é igual a -1, para adicionar no último byte do arquivo out.bin
             if (cabecalho == -1)
             {
-                fread(&byte_out_aux, sizeof(int), 1, out_aux);
-                fseek(out, byte_out_aux, 0);
+                fseek(out, 0, 2);
                 fwrite(&tam_reg, sizeof(int), 1, out);
                 fwrite(registro, sizeof(char), tam_reg, out);
             }
@@ -228,15 +195,6 @@ int main()
             byte_in_aux += 116;
             fwrite(&byte_in_aux, sizeof(int), 1, in_aux);
             rewind(in_aux);
-
-            // Atualiza o out_aux
-            rewind(out_aux);
-            fseek(out, 0, 2);
-            long tam_out = ftell(out);
-            rewind(out_aux);
-            fwrite(&tam_out, sizeof(int), 1, out_aux);
-            rewind(out);
-            rewind(out_aux);
         }
         if (opcao == 2)
         {
