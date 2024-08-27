@@ -11,9 +11,9 @@ int main() {
         char nome_disc[50];
         float media;
         float freq;
-    } vet[6] = {{"001", "AAA", "Joao da Silva", "AAAA", 7.5, 72.3},
-                {"001", "BBB", "Joao da Silva", "BBB", 8.2, 80.4},
-                {"001", "CCC", "Joao da Silva", "CCCCC", 5.4, 79.7},
+    } vet[6] = {{"001", "AAA", "Jo�o da Silva", "AAAA", 7.5, 72.3},
+                {"001", "BBB", "Jo�o da Silva", "BBB", 8.2, 80.4},
+                {"001", "CCC", "Jo�o da Silva", "CCCCC", 5.4, 79.7},
                 
                 {"001", "CCC", "Paulo Souza", "CCCCC", 6.8, 91.3},
                 {"001", "HHH", "Paulo Souza", "HHH", 7.3, 82.7},

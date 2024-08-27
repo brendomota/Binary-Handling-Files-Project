@@ -167,7 +167,7 @@ int main()
             // Obtem o byte a ser lido no arquivo insere.bin
             fread(&byte_in_aux, sizeof(int), 1, in_aux);
 
-            // Faz a leitura do arquivo insere.bin e formata o conteúdo para o arquivo out.bin
+            // Faz a leitura do arquivo insere.bin e formata o conteúdo para depois inserir no arquivo out.bin
             fseek(in, byte_in_aux, 0);
             fread(&hist, sizeof(hist), 1, in);
             sprintf(registro, "%s#%s#%s#%s#%.2f#%.2f", hist.id_aluno, hist.sigla_disc, hist.nome_aluno, hist.nome_disc, hist.media, hist.freq);
@@ -186,8 +186,63 @@ int main()
                 fwrite(&tam_reg, sizeof(int), 1, out);
                 fwrite(registro, sizeof(char), tam_reg, out);
             }
+            // Operação para inserir em um registro que foi removido caso tenha espaço
             else
             {
+                fseek(out, cabecalho, SEEK_SET); // Vamos para o byte em que está um registro removido
+
+                int tam_reg_removido;
+                int ant_byte_offset = 0;
+                int atual_byte_offset = cabecalho;
+                int prox_byte_offset;
+                char buffer_estrela;
+
+                fread(&tam_reg_removido, sizeof(int), 1, out);
+                fread(&buffer_estrela, sizeof(char), 1, out);
+                fread(&prox_byte_offset, sizeof(int), 1, out);
+
+                int i = 0;
+
+                while (tam_reg > tam_reg_removido && prox_byte_offset != -1)
+                {
+                    i++;
+                    fseek(out, prox_byte_offset, SEEK_SET);
+                    ant_byte_offset = atual_byte_offset;
+                    atual_byte_offset = prox_byte_offset;
+                    fread(&tam_reg_removido, sizeof(int), 1, out);
+                    fread(&buffer_estrela, sizeof(char), 1, out);
+                    fread(&prox_byte_offset, sizeof(int), 1, out);
+                }
+                // Significa que é o primeiro ponteiro do cabeçalho
+                if (tam_reg <= tam_reg_removido && i == 0)
+                {
+                    fseek(out, atual_byte_offset, SEEK_SET);
+                    fwrite(&tam_reg, sizeof(int), 1, out);
+                    fwrite(registro, sizeof(char), tam_reg, out);
+                    rewind(out);
+                    fwrite(&prox_byte_offset, sizeof(int), 1, out);
+                }
+                else if (tam_reg <= tam_reg_removido)
+                {
+                    fseek(out, atual_byte_offset, SEEK_SET);
+                    fwrite(&tam_reg, sizeof(int), 1, out);
+                    fwrite(registro, sizeof(char), tam_reg, out);
+
+                    fseek(out, ant_byte_offset + sizeof(int) + sizeof(char), SEEK_SET);
+                    fwrite(&prox_byte_offset, sizeof(int), 1, out);
+                }
+                // Se não couber em nenhum anterior e o prox for -1, significa que vai inserir ao final do arquivo
+                else if (tam_reg > tam_reg_removido && prox_byte_offset == -1)
+                {
+                    fseek(out, 0, SEEK_END);
+                    fwrite(&tam_reg, sizeof(int), 1, out);
+                    fwrite(registro, sizeof(char), tam_reg, out);
+
+                    fseek(out, ant_byte_offset, SEEK_SET);
+                    fread(&tam_reg_removido, sizeof(int), 1, out);
+                    fread(&buffer_estrela, sizeof(char), 1, out);
+                    fwrite(&prox_byte_offset, sizeof(int), 1, out);
+                }
             }
 
             // Atualiza o arquivo in_aux
@@ -212,7 +267,7 @@ int main()
             char *ptrchar;
             int offset_byte = ftell(out);
 
-            int chave_encontrada = 0; //Flag para ver se a chave foi encontrada ou não
+            int chave_encontrada = 0; // Flag para ver se a chave foi encontrada ou não
 
             while (tam_reg > 0)
             {
@@ -251,12 +306,12 @@ int main()
                 }
 
                 // Avança para o próximo registro
-                
+
                 tam_reg = pegar_tamanho_reg(out, registro);
                 offset_byte = ftell(out) - tam_reg - sizeof(int);
             }
 
-            if(chave_encontrada == 0)
+            if (chave_encontrada == 0)
             {
                 printf("\nA chave nao foi encontrada e a proxima remocao acontecera com a chave seguinte a esta.");
             }
