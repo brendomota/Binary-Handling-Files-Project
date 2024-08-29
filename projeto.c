@@ -2,26 +2,34 @@
 #include <stdlib.h>
 #include <string.h>
 
-
 /*----------FUNÇÃO QUE COMPACTA O ARQUIVO----------*/
 
-void compactacao(FILE *fd) {
+void compactacao(FILE *fd)
+{
     FILE *compact;
 
-    if (!(compact = fopen("compactado.bin", "w+b"))) {
+    if (!(compact = fopen("compactado.bin", "w+b")))
+    {
         printf("\nErro ao abrir o arquivo compactado.bin para escrita\n");
         return;
     }
 
-    fseek(fd, sizeof(int), SEEK_SET);  // Pula o cabeçalho (primeiros 4 bytes)
+    fseek(fd, 0, SEEK_SET); // Pula o cabeçalho (primeiros 4 bytes)
+
+    int cabecalho;
+    fread(&cabecalho, sizeof(int), 1, fd);
+    fwrite(&cabecalho, sizeof(int), 1, compact);
+
     int tamanhoRegistro;
     char buffer[256];
 
     printf("\nIniciando compactação...\n");
 
-    while (fread(&tamanhoRegistro, sizeof(int), 1, fd) == 1) {
+    while (fread(&tamanhoRegistro, sizeof(int), 1, fd) == 1)
+    {
         // Valida o tamanho do registro para garantir que não seja lixo
-        if (tamanhoRegistro <= 0 || tamanhoRegistro > sizeof(buffer)) {
+        if (tamanhoRegistro <= 0 || tamanhoRegistro > sizeof(buffer))
+        {
             printf("\nTamanho do registro inválido: %d. Tentando corrigir...\n", tamanhoRegistro);
 
             // Move o ponteiro do arquivo um byte à frente e tenta ler novamente
@@ -29,8 +37,9 @@ void compactacao(FILE *fd) {
             continue;
         }
 
-        long posicaoAtual = ftell(fd);  // Salva a posição atual
-        if (fread(buffer, 1, 1, fd) != 1) {
+        long posicaoAtual = ftell(fd); // Salva a posição atual
+        if (fread(buffer, 1, 1, fd) != 1)
+        {
             printf("\nErro ao ler o primeiro byte do registro. Fim do arquivo?\n");
             break;
         }
@@ -38,25 +47,29 @@ void compactacao(FILE *fd) {
         printf("\nTamanho do registro lido: %d", tamanhoRegistro);
         printf("\nPrimeiro byte do registro: %c", buffer[0]);
 
-        if (buffer[0] == '*') {
+        /*
+        if (buffer[0] == '*')
+        {
             // Registro removido, pular o restante e continuar
             printf("\nRegistro removido encontrado. Pulando...\n");
-            fseek(fd, sizeof(int), SEEK_CUR);  // Pula o próximo offset
-        } else {
-            // Registro válido, copiar para o novo arquivo
-            printf("\nRegistro válido encontrado. Copiando...\n");
-
-            fseek(fd, posicaoAtual, SEEK_SET);  // Volta para a posição original
-            if (fread(buffer, tamanhoRegistro, 1, fd) != 1) {
-                printf("\nErro ao ler o registro completo\n");
-                break;
-            }
-
-            // Escreve o tamanho do registro e o registro no novo arquivo
-            fwrite(&tamanhoRegistro, sizeof(int), 1, compact);
-            fwrite(buffer, tamanhoRegistro, 1, compact);
-            printf("\nRegistro copiado para o arquivo compactado.\n");
+            fseek(fd, sizeof(int), SEEK_CUR); // Pula o próximo offset
         }
+        */
+
+        // Registro válido, copiar para o novo arquivo
+        printf("\nRegistro válido encontrado. Copiando...\n");
+
+        fseek(fd, posicaoAtual, SEEK_SET); // Volta para a posição original
+        if (fread(buffer, tamanhoRegistro, 1, fd) != 1)
+        {
+            printf("\nErro ao ler o registro completo\n");
+            break;
+        }
+
+        // Escreve o tamanho do registro e o registro no novo arquivo
+        fwrite(&tamanhoRegistro, sizeof(int), 1, compact);
+        fwrite(buffer, tamanhoRegistro, 1, compact);
+        printf("\nRegistro copiado para o arquivo compactado.\n");
     }
 
     fclose(compact);
@@ -274,9 +287,8 @@ int main()
                     fread(&buffer_estrela, sizeof(char), 1, out);
                     fread(&prox_byte_offset, sizeof(int), 1, out);
                 }
+
                 // Significa que é o primeiro ponteiro do cabeçalho
-                /*
-                
                 if (tam_reg <= tam_reg_removido && i == 0)
                 {
                     fseek(out, atual_byte_offset, SEEK_SET);
@@ -285,28 +297,7 @@ int main()
                     rewind(out);
                     fwrite(&prox_byte_offset, sizeof(int), 1, out);
                 }
-                
-                */
-                if (tam_reg <= tam_reg_removido && i == 0)
-                {
-                    fseek(out, atual_byte_offset, SEEK_SET);
-                    fwrite(&tam_reg, sizeof(int), 1, out);
-                    fwrite(registro, sizeof(char), tam_reg, out);
 
-                    // Preenche o espaço restante com zeros
-                    int padding = tam_reg_removido - tam_reg;
-                    if (padding > 0)
-                    {
-                        char zero = '\0';
-                        for (int k = 0; k < padding; k++)
-                        {
-                            fwrite(&zero, sizeof(char), 1, out);
-                        }
-                    }
-
-                    rewind(out);
-                    fwrite(&prox_byte_offset, sizeof(int), 1, out);
-                }
                 else if (tam_reg <= tam_reg_removido)
                 {
                     fseek(out, atual_byte_offset, SEEK_SET);
@@ -316,6 +307,7 @@ int main()
                     fseek(out, ant_byte_offset + sizeof(int) + sizeof(char), SEEK_SET);
                     fwrite(&prox_byte_offset, sizeof(int), 1, out);
                 }
+
                 // Se não couber em nenhum anterior e o prox for -1, significa que vai inserir ao final do arquivo
                 else if (tam_reg > tam_reg_removido && prox_byte_offset == -1)
                 {
@@ -408,7 +400,7 @@ int main()
             rewind(re_aux);
         }
 
-        if(opcao == 3)
+        if (opcao == 3)
         {
             compactacao(out);
         }
