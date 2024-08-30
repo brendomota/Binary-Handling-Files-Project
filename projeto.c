@@ -47,11 +47,10 @@ void compactacao(FILE *fd)
         return;
     }
 
-    fseek(fd, 0, SEEK_SET); // Pula o cabeçalho (primeiros 4 bytes)
-
-    int cabecalho;
-    fread(&cabecalho, sizeof(int), 1, fd);
+    int cabecalho = -1;
+ 
     fwrite(&cabecalho, sizeof(int), 1, compact);
+    fseek(fd, sizeof(int), SEEK_SET);  // Pula o cabeçalho (primeiros 4 bytes)
 
     int tamanhoRegistro;
     char buffer[256];
@@ -69,32 +68,37 @@ void compactacao(FILE *fd)
         long posicaoAtual = ftell(fd); // Salva a posição atual
         if (fread(buffer, 1, 1, fd) != 1)
         {
-            printf("\nErro ao ler o primeiro byte do registro. Fim do arquivo?\n");
+            printf("\nErro ao ler o primeiro byte do registro. Fim do arquivo\n");
             break;
         }
-        /*
+
         if (buffer[0] == '*')
         {
             // Registro removido, pular o restante e continuar
-            printf("\nRegistro removido encontrado. Pulando...\n");
             fseek(fd, sizeof(int), SEEK_CUR); // Pula o próximo offset
         }
-        */
-
-        // Registro válido, copiar para o novo arquivo
-
-        fseek(fd, posicaoAtual, SEEK_SET); // Volta para a posição original
-        if (fread(buffer, tamanhoRegistro, 1, fd) != 1)
+        else
         {
-            printf("\nErro ao ler o registro completo\n");
-            break;
-        }
+            // Registro válido, copiar para o novo arquivo
 
-        // Escreve o tamanho do registro e o registro no novo arquivo
-        fwrite(&tamanhoRegistro, sizeof(int), 1, compact);
-        fwrite(buffer, tamanhoRegistro, 1, compact);
+            fseek(fd, posicaoAtual, SEEK_SET); // Volta para a posição original
+            if (fread(buffer, tamanhoRegistro, 1, fd) != 1)
+            {
+                printf("\nErro ao ler o registro completo\n");
+                break;
+            }
+
+            // Escreve o tamanho do registro e o registro no novo arquivo
+            fwrite(&tamanhoRegistro, sizeof(int), 1, compact);
+            fwrite(buffer, tamanhoRegistro, 1, compact);
+        }
     }
+
     fclose(compact);
+    fclose(fd);
+
+    remove("out.bin");
+    rename("compactado.bin", "out.bin");
 }
 
 /*---------FUNÇÃO PARA INSERIR UM REGISTRO NO ARQUIVO----------*/
@@ -432,6 +436,6 @@ int main()
     fclose(in);
     fclose(out);
     fclose(in_aux);
-    
+
     return 0;
 }
