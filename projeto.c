@@ -48,9 +48,9 @@ void compactacao(FILE *fd)
     }
 
     int cabecalho = -1;
- 
+
     fwrite(&cabecalho, sizeof(int), 1, compact);
-    fseek(fd, sizeof(int), SEEK_SET);  // Pula o cabeçalho (primeiros 4 bytes)
+    fseek(fd, sizeof(int), SEEK_SET); // Pula o cabeçalho (primeiros 4 bytes)
 
     int tamanhoRegistro;
     char buffer[256];
@@ -221,9 +221,10 @@ void remover_registro(FILE *re, FILE *re_aux, FILE *out)
 
     sprintf(pegar_chave, "%s%s", remove.id_aluno, remove.sigla_disc);
 
+    int offset_aux = ftell(out);
     tam_reg = pegar_tamanho_reg(out, registro);
     char *ptrchar;
-    int offset_byte = ftell(out);
+    int offset_byte = offset_aux;
 
     int chave_encontrada = 0; // Flag para ver se a chave foi encontrada ou não
 
@@ -263,7 +264,31 @@ void remover_registro(FILE *re, FILE *re_aux, FILE *out)
             break;
         }
 
-        // Avança para o próximo registro
+        // Percorrer o lixo caso tenha
+        char buffer[200];
+        int offset_aux_ini = ftell(out);
+        offset_aux = ftell(out);
+        fread(&tam_reg, sizeof(int), 1, out); // Lê o tamanho do registro como int
+        int flagwhile = 0;
+
+        while (tam_reg <= 0 || tam_reg > sizeof(buffer))
+        {
+            flagwhile = 1;
+            printf("\nTamanho do registro em lixo: %d", tam_reg);
+
+            // Avança 1 byte, pois o tam_reg pode estar lendo lixo
+            fseek(out, ftell(out) - 3, SEEK_SET);
+            offset_aux = ftell(out);
+
+            // Lê o próximo byte e tenta interpretar como tamanho de registro
+            fread(&tam_reg, sizeof(int), 1, out); // Ler como int para manter consistência
+        }
+
+        // Se não encontramos lixo, voltamos ao ponto de leitura original
+        if (flagwhile == 0)
+            fseek(out, offset_aux_ini, SEEK_SET);
+        else
+            fseek(out, offset_aux, SEEK_SET);
 
         tam_reg = pegar_tamanho_reg(out, registro);
         offset_byte = ftell(out) - tam_reg - sizeof(int);
